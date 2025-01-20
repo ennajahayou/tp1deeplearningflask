@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        // Indique à Vercel de traiter app.py comme une fonction Python
+        "src": "app.py",
+        "use": "@vercel/python"
+      }
+    ],
+    "routes": [
+      {
+        // Toutes les requêtes vers / seront redirigées vers app.py
+        "src": "/(.*)",
+        "dest": "app.py"
+      }
+    ]
+  }
