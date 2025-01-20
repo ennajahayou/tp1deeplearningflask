@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Prédiction (Sain / Anomalie)</title>
+  
+  <!-- Bootstrap CSS (CDN) -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  >
+  
+  <!-- Optionnel : Police d'icônes (Font Awesome par exemple) 
+       pour avoir des icônes supplémentaires -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+  >
+  
+  <style>
+    /* Dégradé d'arrière-plan sur tout l'écran */
+    body {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      min-height: 100vh; /* pour occuper toute la hauteur */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Container principal */
+    .container {
+      flex: 1; /* pour occuper l'espace dispo */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 2rem;
+    }
+
+    /* Un "card" central avec un style arrondi et ombre légère */
+    .card {
+      max-width: 650px;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      background-color: #fff;
+    }
+
+    /* Titre en haut de la carte */
+    .card-header {
+      background-color: #ff7f50;
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem 1rem;
+    }
+
+    /* Titre principal */
+    .card-header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* Petit style pour la zone JSON */
+    textarea#jsonInput {
+      height: 150px;
+      resize: vertical; /* permet de redimensionner verticalement */
+    }
+
+    .example-text {
+      font-style: italic;
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    /* Bouton principal */
+    #predictBtn {
+      background-color: #ff7f50;
+      border-color: #ff7f50;
+      font-weight: 600;
+    }
+    #predictBtn:hover {
+      background-color: #ff5722; /* couleur un peu plus sombre */
+      border-color: #ff5722;
+    }
+
+    /* Bloc résultat : on ajoute des angles arrondis et un fond gris */
+    #result {
+      background-color: #f1f2f6;
+      padding: 1rem;
+      border-radius: 8px;
+      min-height: 70px;
+      white-space: pre-wrap; /* pour garder les sauts de ligne */
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="card">
+      <!-- En-tête de la carte -->
+      <div class="card-header">
+        <!-- Ajout d’un emoji pour égayer le titre -->
+        <h1>🔎 Prédiction (Sain / Anomalie)</h1>
+      </div>
+
+      <!-- Corps de la carte -->
+      <div class="card-body">
+        <!-- Titre secondaire -->
+        <h5 class="mb-3">Entrez vos données JSON</h5>
+
+        <!-- Zone de texte pour le JSON -->
+        <div class="mb-3">
+          <label for="jsonInput" class="form-label">Données au format JSON :</label>
+          <textarea
+            class="form-control"
+            id="jsonInput"
+            placeholder='{"features": [5.7, 2.8, 4.1, 1.3]}'></textarea>
+          <div class="example-text">
+            Exemple : {"features": [valeur1, valeur2, ...]}
+          </div>
+        </div>
+
+        <!-- Bouton soumission -->
+        <button id="predictBtn" class="btn btn-primary">
+          <i class="fas fa-stethoscope"></i> Obtenir la prédiction
+        </button>
+
+        <hr class="my-4" />
+
+        <h5>Résultat :</h5>
+        <div id="result">
+          <!-- Le résultat sera affiché ici -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    © 2025 - Votre Application de prédiction
+  </footer>
+
+  <!-- Script Bootstrap Bundle (JS + Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Script Font Awesome (optionnel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+
+  <script>
+    // On récupère les éléments du DOM
+    const predictBtn = document.getElementById("predictBtn");
+    const jsonInput = document.getElementById("jsonInput");
+    const resultDiv = document.getElementById("result");
+
+    predictBtn.addEventListener("click", async () => {
+      const rawData = jsonInput.value.trim();
+      resultDiv.textContent = ""; // On réinitialise l'affichage
+      
+      if (!rawData) {
+        resultDiv.textContent = "Veuillez entrer des données JSON.";
+        return;
+      }
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(rawData);
+      } catch (error) {
+        resultDiv.textContent = "Le contenu n'est pas un JSON valide : " + error;
+        return;
+      }
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(parsedData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          resultDiv.textContent = `Erreur du serveur : ${errorData.error || response.statusText}`;
+        } else {
+          const data = await response.json();
+          if (data.error) {
+            resultDiv.textContent = "Erreur: " + data.error;
+          } else {
+            // data = { prediction: 0 ou 1, label: "Patient sain" ou "Patient avec anomalie" }
+            // On ajoute des émojis en fonction du label
+            let emoji = "";
+            if (data.prediction === 0) {
+              emoji = "🟢"; // Représente "sain"
+            } else {
+              emoji = "🔴"; // Représente "anomalie"
+            }
+
+            resultDiv.textContent =
+              `Prédiction brute : ${data.prediction}\n` +
+              `Label : ${data.label} ${emoji}`;
+          }
+        }
+      } catch (error) {
+        resultDiv.textContent = "Erreur lors de l'appel à l'API : " + error;
+      }
+    });
+  </script>
+</body>
+</html>
